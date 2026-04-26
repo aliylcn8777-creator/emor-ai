@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="JARVIS">
+<meta name="theme-color" content="#000000">
+<title>J.A.R.V.I.S</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:#000;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
+#app{height:100vh;display:flex;flex-direction:column;align-items:center;padding:16px 14px 12px;background:#000;}
+
+/* TABS */
+#tabs{display:flex;gap:6px;margin-bottom:10px;width:100%;}
+.tab{flex:1;padding:8px 0;border-radius:20px;border:0.5px solid #185FA5;background:#0a1520;color:#85B7EB;font-size:12px;cursor:pointer;text-align:center;letter-spacing:0.04em;}
+.tab.active{background:#185FA5;color:#fff;}
+
+/* SCREENS */
+.screen{display:none;flex-direction:column;align-items:center;width:100%;flex:1;overflow:hidden;}
+.screen.active{display:flex;}
+
+/* STATUS */
+#status{font-size:10px;letter-spacing:0.14em;color:#378ADD;text-transform:uppercase;margin-bottom:6px;text-align:center;}
+
+/* ARC RING */
+#arc-ring{position:relative;width:150px;height:150px;margin:2px auto 10px;flex-shrink:0;}
+#arc-ring canvas{position:absolute;top:0;left:0;}
+#arc-label{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;}
+#arc-label .name{font-size:13px;font-weight:600;color:#85B7EB;letter-spacing:0.1em;}
+#arc-label .sub{font-size:9px;color:#378ADD;letter-spacing:0.12em;text-transform:uppercase;margin-top:2px;}
+
+/* CHAT */
+#chat-area{width:100%;flex:1;overflow-y:auto;margin-bottom:8px;display:flex;flex-direction:column;gap:8px;-webkit-overflow-scrolling:touch;}
+.msg{padding:9px 13px;border-radius:16px;font-size:13px;line-height:1.5;max-width:88%;}
+.msg.user{background:#0C447C;color:#B5D4F4;align-self:flex-end;border-bottom-right-radius:4px;}
+.msg.jarvis{background:#0a1520;color:#85B7EB;align-self:flex-start;border:0.5px solid #185FA5;border-bottom-left-radius:4px;}
+.msg.thinking{background:#0a1520;color:#378ADD;align-self:flex-start;border:0.5px solid #185FA5;border-bottom-left-radius:4px;font-style:italic;font-size:11px;}
+
+/* MIC */
+#mic-btn{width:64px;height:64px;border-radius:50%;background:#0C447C;border:2px solid #378ADD;cursor:pointer;display:flex;align-items:center;justify-content:center;margin:2px auto 5px;flex-shrink:0;-webkit-tap-highlight-color:transparent;}
+#mic-btn.listening{background:#A32D2D;border-color:#E24B4A;animation:pulse 1s infinite;}
+#mic-btn.speaking{background:#042C53;border-color:#85B7EB;}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(226,75,74,0.5);}70%{box-shadow:0 0 0 14px rgba(226,75,74,0);}100%{box-shadow:0 0 0 0 rgba(226,75,74,0);}}
+#mic-btn svg{width:26px;height:26px;pointer-events:none;}
+#mic-label{font-size:10px;color:#378ADD;letter-spacing:0.08em;text-transform:uppercase;text-align:center;margin-bottom:8px;flex-shrink:0;}
+
+/* INPUT */
+#input-row{display:flex;gap:6px;width:100%;flex-shrink:0;}
+#user-input{flex:1;background:#0a1520;border:0.5px solid #185FA5;border-radius:22px;color:#85B7EB;font-size:13px;padding:10px 14px;outline:none;-webkit-appearance:none;}
+#user-input::placeholder{color:#378ADD;opacity:0.6;}
+#send-btn{width:42px;height:42px;border-radius:50%;background:#185FA5;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;-webkit-tap-highlight-color:transparent;}
+
+/* QUICK BTNS */
+#quick-btns{display:flex;flex-wrap:wrap;gap:5px;width:100%;margin-bottom:7px;flex-shrink:0;}
+.qbtn{background:#0a1520;border:0.5px solid #185FA5;color:#85B7EB;font-size:11px;border-radius:20px;padding:5px 11px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+
+/* HOME SCREEN */
+#home-screen{overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.room-label{font-size:10px;letter-spacing:0.12em;color:#378ADD;text-transform:uppercase;width:100%;margin:10px 0 6px;}
+.devices-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;margin-bottom:4px;}
+.device-card{background:#0a1520;border:0.5px solid #185FA5;border-radius:14px;padding:12px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background 0.2s;}
+.device-card.on{background:#0C447C;border-color:#378ADD;}
+.device-card .d-icon{font-size:22px;margin-bottom:6px;}
+.device-card .d-name{font-size:12px;color:#85B7EB;font-weight:500;}
+.device-card .d-status{font-size:10px;color:#378ADD;margin-top:2px;}
+.device-card.on .d-status{color:#B5D4F4;}
+
+/* TEMP */
+.temp-row{display:flex;align-items:center;gap:10px;width:100%;background:#0a1520;border:0.5px solid #185FA5;border-radius:14px;padding:12px;margin-bottom:8px;}
+.temp-val{font-size:28px;font-weight:600;color:#85B7EB;}
+.temp-unit{font-size:13px;color:#378ADD;}
+.temp-btns{display:flex;flex-direction:column;gap:4px;margin-left:auto;}
+.temp-btn{width:32px;height:32px;border-radius:50%;background:#0C447C;border:0.5px solid #378ADD;color:#85B7EB;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+
+/* SECURITY */
+.security-card{width:100%;background:#0a1520;border:0.5px solid #185FA5;border-radius:14px;padding:12px;margin-bottom:8px;}
+.security-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid #0C447C;}
+.security-row:last-child{border-bottom:none;}
+.sec-name{font-size:12px;color:#85B7EB;}
+.sec-status{font-size:11px;padding:3px 10px;border-radius:10px;}
+.sec-status.ok{background:#085041;color:#9FE1CB;}
+.sec-status.alert{background:#A32D2D;color:#F09595;}
+
+/* TOGGLE */
+.toggle{width:40px;height:22px;border-radius:11px;background:#0C447C;border:none;cursor:pointer;position:relative;flex-shrink:0;-webkit-tap-highlight-color:transparent;}
+.toggle::after{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:#378ADD;top:3px;left:3px;transition:left 0.2s;}
+.toggle.on{background:#185FA5;}
+.toggle.on::after{left:21px;background:#fff;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="tabs">
+    <button class="tab active" onclick="switchTab('jarvis-screen')">Jarvis</button>
+    <button class="tab" onclick="switchTab('home-screen')">Ev Kontrolü</button>
+  </div>
+
+  <!-- JARVIS TAB -->
+  <div id="jarvis-screen" class="screen active">
+    <div id="status">Sistem aktif — bekleniyor</div>
+    <div id="arc-ring">
+      <canvas id="ring-canvas" width="150" height="150"></canvas>
+      <div id="arc-label">
+        <div class="name">J.A.R.V.I.S</div>
+        <div class="sub">AI Asistan</div>
+      </div>
+    </div>
+
+    <div id="chat-area">
+      <div class="msg jarvis">Merhaba efendim. Mikrofona dokunun veya yazın. Ev kontrolü için "ışıkları aç" gibi komutlar verebilirsiniz.</div>
+    </div>
+
+    <button id="mic-btn" onclick="toggleListen()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#85B7EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="9" y="2" width="6" height="12" rx="3"></rect>
+        <path d="M5 10a7 7 0 0 0 14 0"></path>
+        <line x1="12" y1="19" x2="12" y2="22"></line>
+        <line x1="8" y1="22" x2="16" y2="22"></line>
+      </svg>
+    </button>
+    <div id="mic-label">Mikrofona dokun ve konuş</div>
+
+    <div id="quick-btns">
+      <button class="qbtn" onclick="quickAsk('Merhaba Jarvis')">Selam</button>
+      <button class="qbtn" onclick="quickAsk('Salon ışığını aç')">Işık aç</button>
+      <button class="qbtn" onclick="quickAsk('TV yi aç')">TV aç</button>
+      <button class="qbtn" onclick="quickAsk('Güvenlik durumu')">Güvenlik</button>
+    </div>
+
+    <div id="input-row">
+      <input id="user-input" type="text" placeholder="Yazarak da sorabilirsiniz..." />
+      <button id="send-btn" onclick="sendMessage()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- HOME TAB -->
+  <div id="home-screen" class="screen">
+    <div class="temp-row">
+      <div>
+        <div style="font-size:10px;color:#378ADD;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;">Klima</div>
+        <div style="display:flex;align-items:baseline;gap:4px;">
+          <span class="temp-val" id="temp-val">22</span>
+          <span class="temp-unit">°C</span>
+        </div>
+      </div>
+      <div style="margin-left:16px;flex:1;">
+        <div style="font-size:11px;color:#85B7EB;" id="ac-mode">Soğutma modu</div>
+        <div style="font-size:10px;color:#378ADD;margin-top:2px;" id="ac-status">Çalışıyor</div>
+      </div>
+      <div class="temp-btns">
+        <button class="temp-btn" onclick="changeTemp(1)">+</button>
+        <button class="temp-btn" onclick="changeTemp(-1)">−</button>
+      </div>
+      <button class="toggle on" id="ac-toggle" onclick="toggleAC()" style="margin-left:8px;"></button>
+    </div>
+
+    <div class="room-label">Salon</div>
+    <div class="devices-grid">
+      <div class="device-card on" id="dev-salon-isik" onclick="toggleDevice('salon-isik')">
+        <div class="d-icon">💡</div>
+        <div class="d-name">Işık</div>
+        <div class="d-status">Açık</div>
+      </div>
+      <div class="device-card" id="dev-salon-tv" onclick="toggleDevice('salon-tv')">
+        <div class="d-icon">📺</div>
+        <div class="d-name">TV</div>
+        <div class="d-status">Kapalı</div>
+      </div>
+      <div class="device-card" id="dev-salon-perde" onclick="toggleDevice('salon-perde')">
+        <div class="d-icon">🪟</div>
+        <div class="d-name">Perde</div>
+        <div class="d-status">Kapalı</div>
+      </div>
+      <div class="device-card on" id="dev-salon-ses" onclick="toggleDevice('salon-ses')">
+        <div class="d-icon">🔊</div>
+        <div class="d-name">Ses Sistemi</div>
+        <div class="d-status">Açık</div>
+      </div>
+    </div>
+
+    <div class="room-label">Yatak Odası</div>
+    <div class="devices-grid">
+      <div class="device-card" id="dev-yatak-isik" onclick="toggleDevice('yatak-isik')">
+        <div class="d-icon">💡</div>
+        <div class="d-name">Işık</div>
+        <div class="d-status">Kapalı</div>
+      </div>
+      <div class="device-card on" id="dev-yatak-fan" onclick="toggleDevice('yatak-fan')">
+        <div class="d-icon">🌀</div>
+        <div class="d-name">Fan</div>
+        <div class="d-status">Açık</div>
+      </div>
+    </div>
+
+    <div class="room-label">Güvenlik</div>
+    <div class="security-card">
+      <div class="security-row">
+        <span class="sec-name">Ön Kapı</span>
+        <span class="sec-status ok">Kilitli</span>
+      </div>
+      <div class="security-row">
+        <span class="sec-name">Arka Kapı</span>
+        <span class="sec-status ok">Kilitli</span>
+      </div>
+      <div class="security-row">
+        <span class="sec-name">Hareket Sensörü</span>
+        <span class="sec-status ok">Normal</span>
+      </div>
+      <div class="security-row">
+        <span class="sec-name">Kamera</span>
+        <span class="sec-status ok">Aktif</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const canvas = document.getElementById('ring-canvas');
+const ctx = canvas.getContext('2d');
+let angle=0,pulse=0,isThinking=false,isSpeaking=false,isListening=false;
+
+function drawRing(){
+  ctx.clearRect(0,0,150,150);
+  const cx=75,cy=75;
+  ctx.beginPath();ctx.arc(cx,cy,60,0,Math.PI*2);ctx.strokeStyle='#0C447C';ctx.lineWidth=2;ctx.stroke();
+  const arcLen=isThinking?Math.PI*1.2:isSpeaking?Math.PI*0.9:isListening?Math.PI*1.6:Math.PI*0.6;
+  ctx.beginPath();ctx.arc(cx,cy,60,angle,angle+arcLen);ctx.strokeStyle=isListening?'#E24B4A':'#378ADD';ctx.lineWidth=3;ctx.stroke();
+  ctx.beginPath();ctx.arc(cx,cy,50,angle+Math.PI,angle+Math.PI+arcLen*0.5);ctx.strokeStyle='#185FA5';ctx.lineWidth=1.5;ctx.stroke();
+  const r=44+Math.sin(pulse)*(isThinking||isSpeaking||isListening?5:2);
+  ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.strokeStyle=`rgba(55,138,221,${0.15+Math.sin(pulse)*0.08})`;ctx.lineWidth=1;ctx.stroke();
+  for(let i=0;i<8;i++){const a=(i/8)*Math.PI*2+angle*0.3;ctx.beginPath();ctx.moveTo(cx+Math.cos(a)*65,cy+Math.sin(a)*65);ctx.lineTo(cx+Math.cos(a)*70,cy+Math.sin(a)*70);ctx.strokeStyle='#0C447C';ctx.lineWidth=1;ctx.stroke();}
+  const sp=isThinking?0.06:isSpeaking?0.04:isListening?0.09:0.02;
+  angle+=sp;pulse+=0.05;
+  requestAnimationFrame(drawRing);
+}
+drawRing();
+
+function switchTab(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const idx=id==='jarvis-screen'?0:1;
+  document.querySelectorAll('.tab')[idx].classList.add('active');
+}
+
+const devices={
+  'salon-isik':{on:true,name:'Salon ışığı'},
+  'salon-tv':{on:false,name:'Salon TV'},
+  'salon-perde':{on:false,name:'Salon perdesi'},
+  'salon-ses':{on:true,name:'Ses sistemi'},
+  'yatak-isik':{on:false,name:'Yatak odası ışığı'},
+  'yatak-fan':{on:true,name:'Yatak odası fanı'}
+};
+let acOn=true,temp=22;
+
+function toggleDevice(id){
+  const d=devices[id];
+  d.on=!d.on;
+  const card=document.getElementById('dev-'+id);
+  card.classList.toggle('on',d.on);
+  card.querySelector('.d-status').textContent=d.on?'Açık':'Kapalı';
+}
+
+function toggleAC(){
+  acOn=!acOn;
+  document.getElementById('ac-toggle').classList.toggle('on',acOn);
+  document.getElementById('ac-status').textContent=acOn?'Çalışıyor':'Kapalı';
+}
+
+function changeTemp(d){
+  temp=Math.min(30,Math.max(16,temp+d));
+  document.getElementById('temp-val').textContent=temp;
+}
+
+function setDeviceByVoice(name, state){
+  for(const [id,d] of Object.entries(devices)){
+    if(d.name.toLowerCase().includes(name.toLowerCase())){
+      if((state==='aç'&&!d.on)||(state==='kapat'&&d.on)) toggleDevice(id);
+      return true;
+    }
+  }
+  return false;
+}
+
+const chatArea=document.getElementById('chat-area');
+const statusEl=document.getElementById('status');
+const inputEl=document.getElementById('user-input');
+const micBtn=document.getElementById('mic-btn');
+const micLabel=document.getElementById('mic-label');
+let recognition=null;
+
+function addMsg(text,type){
+  const div=document.createElement('div');
+  div.className='msg '+type;div.textContent=text;
+  chatArea.appendChild(div);chatArea.scrollTop=chatArea.scrollHeight;return div;
+}
+function setStatus(t){statusEl.textContent=t;}
+
+function speak(text){
+  if(!window.speechSynthesis)return Promise.resolve();
+  return new Promise(resolve=>{
+    window.speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text);
+    u.lang='tr-TR';u.rate=0.92;u.pitch=0.8;
+    isSpeaking=true;micBtn.classList.add('speaking');setStatus('Konuşuyor...');
+    u.onend=u.onerror=()=>{isSpeaking=false;micBtn.classList.remove('speaking');setStatus('Sistem aktif — bekleniyor');resolve();};
+    window.speechSynthesis.speak(u);
+  });
+}
+
+function toggleListen(){if(isListening)stopListening();else startListening();}
+
+function startListening(){
+  if(isSpeaking){window.speechSynthesis.cancel();isSpeaking=false;micBtn.classList.remove('speaking');}
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){addMsg('Tarayıcınız ses tanımayı desteklemiyor. Chrome kullanın.','jarvis');return;}
+  if(recognition){try{recognition.abort();}catch(e){}}
+  recognition=new SR();recognition.lang='tr-TR';recognition.continuous=false;recognition.interimResults=false;
+  recognition.onstart=()=>{isListening=true;micBtn.classList.add('listening');micLabel.textContent='Dinliyorum... bitince tekrar dokun';setStatus('Ses algılanıyor...');};
+  recognition.onresult=(ev)=>{const text=ev.results[0][0].transcript.trim();if(text){stopListening();addMsg(text,'user');askJarvis(text);}};
+  recognition.onerror=(ev)=>{stopListening();
+    if(ev.error==='not-allowed')addMsg('Mikrofon izni gerekli. Tarayıcı ayarlarından izin verin.','jarvis');
+    else if(ev.error==='no-speech')addMsg('Ses duyamadım efendim, tekrar deneyin.','jarvis');
+    else addMsg('Hata: '+ev.error,'jarvis');
+  };
+  recognition.onend=()=>{if(isListening)stopListening();};
+  try{recognition.start();}catch(e){stopListening();addMsg('Ses başlatılamadı: '+e.message,'jarvis');}
+}
+
+function stopListening(){
+  isListening=false;micBtn.classList.remove('listening');
+  micLabel.textContent='Mikrofona dokun ve konuş';setStatus('Sistem aktif — bekleniyor');
+  if(recognition){try{recognition.stop();}catch(e){}recognition=null;}
+}
+
+const deviceStatus=()=>{
+  const onList=Object.values(devices).filter(d=>d.on).map(d=>d.name).join(', ');
+  const offList=Object.values(devices).filter(d=>!d.on).map(d=>d.name).join(', ');
+  return `Açık cihazlar: ${onList||'yok'}. Kapalı cihazlar: ${offList||'yok'}. Klima: ${acOn?'açık, '+temp+'°C':'kapalı'}.`;
+};
+
+async function askJarvis(userText){
+  isThinking=true;setStatus('Analiz ediliyor...');
+  const thinking=addMsg('Düşünüyorum...','thinking');
+
+  const lower=userText.toLowerCase();
+  let handled=false;
+
+  if(lower.includes('ışık')&&(lower.includes('aç')||lower.includes('yak'))){
+    const room=lower.includes('yatak')?'yatak-isik':'salon-isik';
+    if(!devices[room].on)toggleDevice(room);
+    const reply=`${lower.includes('yatak')?'Yatak odası ışığı':'Salon ışığı'} açıldı efendim.`;
+    thinking.remove();isThinking=false;addMsg(reply,'jarvis');await speak(reply);handled=true;
+  } else if(lower.includes('ışık')&&lower.includes('kapat')){
+    const room=lower.includes('yatak')?'yatak-isik':'salon-isik';
+    if(devices[room].on)toggleDevice(room);
+    const reply=`${lower.includes('yatak')?'Yatak odası ışığı':'Salon ışığı'} kapatıldı efendim.`;
+    thinking.remove();isThinking=false;addMsg(reply,'jarvis');await speak(reply);handled=true;
+  } else if((lower.includes('tv')&&(lower.includes('aç')||lower.includes('başlat')))){
+    if(!devices['salon-tv'].on)toggleDevice('salon-tv');
+    const reply='TV açıldı efendim. İyi seyirler.';
+    thinking.remove();isThinking=false;addMsg(reply,'jarvis');await speak(reply);handled=true;
+  } else if(lower.includes('tv')&&lower.includes('kapat')){
+    if(devices['salon-tv'].on)toggleDevice('salon-tv');
+    const reply='TV kapatıldı efendim.';
+    thinking.remove();isThinking=false;addMsg(reply,'jarvis');await speak(reply);handled=true;
+  } else if(lower.includes('güvenlik')||lower.includes('kapı')){
+    const reply='Tüm kapılar kilitli, hareket sensörleri normal, kameralar aktif efendim.';
+    thinking.remove();isThinking=false;addMsg(reply,'jarvis');await speak(reply);handled=true;
+  } else if(lower.includes('hepsini kapat')||lower.includes('her şeyi kapat')){
+    Object.keys(devices).forEach(id=>{if(devices[id].on)toggleDevice(id);});
+    const reply='Tüm cihazlar kapatıldı efendim. İyi geceler.';
+    thinking.remove();isThinking=false;addMsg(reply,'jarvis');await speak(reply);handled=true;
+  }
+
+  if(!handled){
+    try{
+      const res=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          model:'claude-sonnet-4-20250514',max_tokens:1000,
+          system:`Sen J.A.R.V.I.S'sin — Iron Man'deki gibi zeki, nazik ve sofistike bir yapay zeka asistanısın. Türkçe konuşuyorsun. Kullanıcıya zaman zaman "efendim" diye hitap edebilirsin. Ev durumu: ${deviceStatus()} Yanıtların sesli okunacak, 2-3 cümle yeterli. Noktalama kullan ama liste veya özel karakter kullanma.`,
+          messages:[{role:'user',content:userText}]
+        })
+      });
+      const data=await res.json();
+      const reply=data.content?.map(b=>b.text||'').join('')||'Bir aksaklık oluştu efendim.';
+      thinking.remove();isThinking=false;addMsg(reply,'jarvis');await speak(reply);
+    }catch(e){
+      thinking.remove();isThinking=false;
+      const err='Bağlantı hatası oluştu efendim.';addMsg(err,'jarvis');await speak(err);
+    }
+  }
+}
+
+async function sendMessage(){
+  const text=inputEl.value.trim();if(!text)return;
+  inputEl.value='';addMsg(text,'user');await askJarvis(text);
+}
+async function quickAsk(text){addMsg(text,'user');await askJarvis(text);}
+inputEl.addEventListener('keydown',e=>{if(e.key==='Enter')sendMessage();});
+</script>
+</body>
+</html>
